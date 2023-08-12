@@ -1,6 +1,9 @@
 module Main (main) where
 
+import Control.Concurrent (forkIO)
 import Graphics.UI.Fungen
+import PlayFile
+import Sound.ALUT
 
 type OvenTimer = Int
 
@@ -23,7 +26,7 @@ secondsToTicks :: Int -> Int
 secondsToTicks seconds = seconds * msPerSecond `div` msPerTick
 
 setTimer :: IOGame t s u v Int
-setTimer = randomInt (minTicks, maxTicks) -- TODO: needs to be number of ticks, not seconds
+setTimer = randomInt (minTicks, maxTicks)
            where minTicks = secondsToTicks 30
                  maxTicks = secondsToTicks 180 -- 3 minutes
 
@@ -111,4 +114,6 @@ createMonkey = do
 
 main :: IO ()
 main = do
-  funInit windowConfiguration background [monkey] () initialGameState inputs gameCycle (Timer msPerTick) [("tex.bmp", Nothing)]
+   -- Initialise ALUT and eat any ALUT-specific commandline flags.
+   forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("")
+   funInit windowConfiguration background [monkey] () initialGameState inputs gameCycle (Timer msPerTick) [("dummy.bmp", Nothing)]
