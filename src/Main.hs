@@ -101,6 +101,9 @@ takeMeatloafOutOfOven _ _ = do
 gameCycle :: IOGame GameState s u v ()
 gameCycle = do
   state <- getGameAttribute
+  if shouldTimerDing state
+    then liftIOtoIOGame playTimerJingle
+    else return ()
   updateEffects state
   draw
 
@@ -112,8 +115,17 @@ createMonkey = do
   let monkeyPic = Tex (50.0,50.0) 0
     in object "monkey" monkeyPic False (125, 125) (-5, 5) ()
 
+shouldTimerDing :: GameState -> Bool
+shouldTimerDing (Baking 0) = True
+shouldTimerDing _          = False
+
+playTimerJingle :: IO ()
+playTimerJingle = do
+  _ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("media/song.ogg")
+  return ()
+
 main :: IO ()
 main = do
-   -- Initialise ALUT and eat any ALUT-specific commandline flags.
-   forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("")
-   funInit windowConfiguration background [monkey] () initialGameState inputs gameCycle (Timer msPerTick) [("dummy.bmp", Nothing)]
+  -- Initialise ALUT and eat any ALUT-specific commandline flags.
+  _ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("media/song.ogg")
+  funInit windowConfiguration background [monkey] () initialGameState inputs gameCycle (Timer msPerTick) [("dummy.bmp", Nothing)]
