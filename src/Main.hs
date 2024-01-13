@@ -113,7 +113,7 @@ monkey = objectGroup "monkey" [createMonkey]
 createMonkey :: GameObject ()
 createMonkey = do
   let monkeyPic = Tex (50.0,50.0) 0
-    in object "monkey" monkeyPic False (125, 125) (-5, 5) ()
+    in object "monkey" monkeyPic False (125, 125) (0, 0) ()
 
 shouldTimerDing :: GameState -> Bool
 shouldTimerDing (Baking 0) = True
@@ -121,11 +121,20 @@ shouldTimerDing _          = False
 
 playTimerJingle :: IO ()
 playTimerJingle = do
-  _ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("media/song.ogg")
+  _ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("assets/media/song.wav")
   return ()
 
 main :: IO ()
 main = do
   -- Initialise ALUT and eat any ALUT-specific commandline flags.
-  _ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("media/song.ogg")
-  funInit windowConfiguration background [monkey] () initialGameState inputs gameCycle (Timer msPerTick) [("dummy.bmp", Nothing)]
+  _ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("assets/media/song.wav")
+  funInit windowConfiguration
+          background
+          [monkey]
+          ()
+          initialGameState
+          inputs
+          gameCycle
+          (Timer msPerTick)
+          [ ("assets/textures/tiled_wall_background.bmp", Nothing)
+          ]

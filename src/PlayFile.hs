@@ -5,7 +5,7 @@
    See the file LICENSE.
 -}
 
-module PlayFile where
+module PlayFile (playFile) where
 
 import Control.Monad ( when, unless )
 import Data.List ( intersperse )
@@ -19,7 +19,7 @@ playFile :: FilePath -> IO ()
 playFile fileName = do
    putStrLn fileName
    -- Create an AL buffer from the given sound file.
-   buf <- createBuffer (WhiteNoise 1000)
+   buf <- createBuffer (File fileName)
 
    -- Generate a single source, attach the buffer to it and start playing.
    source <- genObjectName

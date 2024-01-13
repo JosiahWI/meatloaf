@@ -17,7 +17,7 @@ executable meatloaf
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
                      , FunGEn
-		     , ALUT
+                     , ALUT
   ghc-options:         -Wall
                        -Wcompat
                        -Widentities
@@ -27,3 +27,4 @@ executable meatloaf
                        -Wmissing-home-modules
                        -Wpartial-fields
                        -Wredundant-constraints
+  other-modules:        PlayFile
