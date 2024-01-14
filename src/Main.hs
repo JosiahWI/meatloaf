@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Control.Concurrent (forkIO)
+import Data.List (genericLength)
 import Graphics.UI.Fungen
 import PlayFile
 import Sound.ALUT
@@ -21,6 +22,17 @@ msPerTick = 40
 
 msPerSecond :: Int
 msPerSecond = 1000
+
+textures :: FilePictureList
+textures = [ ("assets/textures/tiled_wall_background.bmp", Nothing)
+           -- texture has a problem and doesn't load
+           --, ("assets/textures/meatloaf_baking.bmp", Nothing)
+           , ("assets/textures/meatloaf_burned.bmp", Nothing)
+           , ("assets/textures/meatloaf_perfect.bmp", Nothing)
+           ]
+
+maxTextureId :: Int
+maxTextureId = genericLength textures
 
 secondsToTicks :: Int -> Int
 secondsToTicks seconds = seconds * msPerSecond `div` msPerTick
@@ -83,8 +95,20 @@ printString s =
           (r,g,b)  = (0.5, 1.0, 1.0)
 
 updateEffects :: GameState
-              -> IOGame GameState s u v ()
-updateEffects state = setGameAttribute $ update state
+              -> IOGame GameState () u v ()
+updateEffects state = do
+  let state' = update state
+  setGameAttribute state'
+  updateMonkey state'
+
+updateMonkey :: GameState -> IOGame GameState () u v ()
+updateMonkey state = do
+  obj <- findObject "monkey" "monkey"
+  replaceObject obj (updateObjectPicture textureId maxTextureId)
+  where textureId = case state of
+                      Burned  -> 1
+                      Cooling -> 2
+                      _       -> 0
 
 takeMeatloafOutOfOven :: InputHandler GameState s u v
 takeMeatloafOutOfOven _ _ = do
@@ -98,7 +122,7 @@ takeMeatloafOutOfOven _ _ = do
     Burned     -> return ()
     _          -> setGameAttribute Ruined
 
-gameCycle :: IOGame GameState s u v ()
+gameCycle :: IOGame GameState () u v ()
 gameCycle = do
   state <- getGameAttribute
   if shouldTimerDing state
@@ -112,7 +136,7 @@ monkey = objectGroup "monkey" [createMonkey]
 
 createMonkey :: GameObject ()
 createMonkey = do
-  let monkeyPic = Tex (50.0,50.0) 0
+  let monkeyPic = Tex (300.0,300.0) 1
     in object "monkey" monkeyPic False (125, 125) (0, 0) ()
 
 shouldTimerDing :: GameState -> Bool
@@ -127,7 +151,7 @@ playTimerJingle = do
 main :: IO ()
 main = do
   -- Initialise ALUT and eat any ALUT-specific commandline flags.
-  _ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("assets/media/song.wav")
+  --_ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("assets/media/song.wav")
   funInit windowConfiguration
           background
           [monkey]
@@ -136,5 +160,4 @@ main = do
           inputs
           gameCycle
           (Timer msPerTick)
-          [ ("assets/textures/tiled_wall_background.bmp", Nothing)
-          ]
+          textures 
