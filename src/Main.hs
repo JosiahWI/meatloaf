@@ -25,8 +25,7 @@ msPerSecond = 1000
 
 textures :: FilePictureList
 textures = [ ("assets/textures/tiled_wall_background.bmp", Nothing)
-           -- texture has a problem and doesn't load
-           --, ("assets/textures/meatloaf_baking.bmp", Nothing)
+           , ("assets/textures/meatloaf_baking.bmp", Nothing)
            , ("assets/textures/meatloaf_burned.bmp", Nothing)
            , ("assets/textures/meatloaf_perfect.bmp", Nothing)
            ]
@@ -106,9 +105,9 @@ updateMonkey state = do
   obj <- findObject "monkey" "monkey"
   replaceObject obj (updateObjectPicture textureId maxTextureId)
   where textureId = case state of
-                      Burned  -> 1
-                      Cooling -> 2
-                      _       -> 0
+                      Burned  -> 2
+                      Cooling -> 3
+                      _       -> 1
 
 takeMeatloafOutOfOven :: InputHandler GameState s u v
 takeMeatloafOutOfOven _ _ = do
