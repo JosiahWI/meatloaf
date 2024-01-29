@@ -29,6 +29,7 @@ textures = [ ("assets/textures/tiled_wall_background.bmp", Nothing)
            , ("assets/textures/meatloaf_burned.bmp", Nothing)
            , ("assets/textures/meatloaf_perfect.bmp", Nothing)
            , ("assets/textures/meatloaf_undercooked.bmp", Nothing)
+           , ("assets/textures/meatloaf_instructions.bmp", Nothing)
            ]
 
 maxTextureId :: Int
@@ -106,6 +107,7 @@ updateMonkey state = do
   obj <- findObject "monkey" "monkey"
   replaceObject obj (updateObjectPicture textureId maxTextureId)
   where textureId = case state of
+                      Menu _  -> 5
                       Burned  -> 2
                       Cooling -> 3
                       Ruined  -> 4
