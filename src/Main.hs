@@ -138,7 +138,7 @@ monkey = objectGroup "monkey" [createMonkey]
 createMonkey :: GameObject ()
 createMonkey = do
   let monkeyPic = Tex (300.0,300.0) 1
-    in object "monkey" monkeyPic False (125, 125) (0, 0) ()
+    in object "monkey" monkeyPic False (400, 200) (0, 0) ()
 
 shouldTimerDing :: GameState -> Bool
 shouldTimerDing (Baking 0) = True
