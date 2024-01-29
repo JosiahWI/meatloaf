@@ -28,6 +28,7 @@ textures = [ ("assets/textures/tiled_wall_background.bmp", Nothing)
            , ("assets/textures/meatloaf_baking.bmp", Nothing)
            , ("assets/textures/meatloaf_burned.bmp", Nothing)
            , ("assets/textures/meatloaf_perfect.bmp", Nothing)
+           , ("assets/textures/meatloaf_undercooked.bmp", Nothing)
            ]
 
 maxTextureId :: Int
@@ -107,6 +108,7 @@ updateMonkey state = do
   where textureId = case state of
                       Burned  -> 2
                       Cooling -> 3
+                      Ruined  -> 4
                       _       -> 1
 
 takeMeatloafOutOfOven :: InputHandler GameState s u v
