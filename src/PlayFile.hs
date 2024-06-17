@@ -17,7 +17,6 @@ import System.IO ( hPutStrLn, stderr )
 
 playFile :: FilePath -> IO ()
 playFile fileName = do
-   putStrLn fileName
    -- Create an AL buffer from the given sound file.
    buf <- createBuffer (File fileName)
 
