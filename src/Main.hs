@@ -8,7 +8,7 @@ import Sound.ALUT
 
 type OvenTimer = Int
 
-data GameState =
+data GameStage =
     Menu [String]
   | Baking OvenTimer
   | Burning OvenTimer
@@ -43,8 +43,8 @@ setTimer = randomInt (minTicks, maxTicks)
            where minTicks = secondsToTicks 30
                  maxTicks = secondsToTicks 180 -- 3 minutes
 
-initialGameState :: GameState
-initialGameState = Menu
+initialGameStage :: GameStage
+initialGameStage = Menu
   [ "Press k to page."
   , "Funky Kong likes to bake meatloaf."
   , "Unfortunately..."
@@ -67,19 +67,19 @@ windowConfiguration = ( (600, 200)
 background :: GameMap Int
 background = textureMap 0 50 50 250.0 250.0
 
-inputs :: [InputBinding GameState s u v]
+inputs :: [InputBinding GameStage s u v]
 inputs = [(Char 'k', Press, takeMeatloafOutOfOven)]
 
-update :: GameState -> GameState
+update :: GameStage -> GameStage
 update (Baking 0)     = Burning $ secondsToTicks 2
 update (Baking time)  = Baking $ time - 1
 update (Burning 0)    = Burned
 update (Burning time) = Burning $ time - 1
 update state          = state
 
-draw :: IOGame GameState s u v ()
+draw :: IOGame GameStage s u v ()
 draw = getGameAttribute >>= (printString . showState)
-       where showState :: GameState -> String
+       where showState :: GameStage -> String
              showState (Menu (x:_)) = x
              showState (Baking _)   = "Baking..."
              showState (Burning _)  = "Meatloaf is burning!"
@@ -95,14 +95,14 @@ printString s =
           position = (5,400)
           (r,g,b)  = (0.5, 1.0, 1.0)
 
-updateEffects :: GameState
-              -> IOGame GameState () u v ()
+updateEffects :: GameStage
+              -> IOGame GameStage () u v ()
 updateEffects state = do
   let state' = update state
   setGameAttribute state'
   updateMonkey state'
 
-updateMonkey :: GameState -> IOGame GameState () u v ()
+updateMonkey :: GameStage -> IOGame GameStage () u v ()
 updateMonkey state = do
   obj <- findObject "monkey" "monkey"
   replaceObject obj (updateObjectPicture textureId maxTextureId)
@@ -113,7 +113,7 @@ updateMonkey state = do
                       Ruined  -> 4
                       _       -> 1
 
-takeMeatloafOutOfOven :: InputHandler GameState s u v
+takeMeatloafOutOfOven :: InputHandler GameStage s u v
 takeMeatloafOutOfOven _ _ = do
   state <- getGameAttribute
   case state of
@@ -125,7 +125,7 @@ takeMeatloafOutOfOven _ _ = do
     Burned     -> return ()
     _          -> setGameAttribute Ruined
 
-gameCycle :: IOGame GameState () u v ()
+gameCycle :: IOGame GameStage () u v ()
 gameCycle = do
   state <- getGameAttribute
   if shouldTimerDing state
@@ -142,7 +142,7 @@ createMonkey = do
   let monkeyPic = Tex (300.0,300.0) 1
     in object "monkey" monkeyPic False (400, 200) (0, 0) ()
 
-shouldTimerDing :: GameState -> Bool
+shouldTimerDing :: GameStage -> Bool
 shouldTimerDing (Baking 0) = True
 shouldTimerDing _          = False
 
@@ -159,7 +159,7 @@ main = do
           background
           [monkey]
           ()
-          initialGameState
+          initialGameStage
           inputs
           gameCycle
           (Timer msPerTick)
