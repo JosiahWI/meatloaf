@@ -27,4 +27,4 @@ executable meatloaf
                        -Wmissing-home-modules
                        -Wpartial-fields
                        -Wredundant-constraints
-  other-modules:        PlayFile
+  other-modules:        Media

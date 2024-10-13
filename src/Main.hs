@@ -1,9 +1,8 @@
 module Main (main) where
 
-import Control.Concurrent (forkIO)
 import Data.List (genericLength)
 import Graphics.UI.Fungen
-import PlayFile
+import Media
 import Sound.ALUT
 
 type OvenTimer = Int
@@ -17,8 +16,17 @@ data GameStage =
   | Ruined
   deriving (Show, Eq)
 
+data GameState = GameState
+  { getStage     :: GameStage
+  , getMainTheme :: Source
+  , getTimerDing :: Source
+  } deriving Show
+
+setStage :: GameStage -> GameState -> GameState
+setStage stage' (GameState _ mainTheme timerDing) = GameState stage' mainTheme timerDing
+
 msPerTick :: Int
-msPerTick = 40
+msPerTick = 100
 
 msPerSecond :: Int
 msPerSecond = 1000
@@ -43,8 +51,8 @@ setTimer = randomInt (minTicks, maxTicks)
            where minTicks = secondsToTicks 30
                  maxTicks = secondsToTicks 180 -- 3 minutes
 
-initialGameStage :: GameStage
-initialGameStage = Menu
+menu :: GameStage
+menu = Menu
   [ "Press k to page."
   , "Funky Kong likes to bake meatloaf."
   , "Unfortunately..."
@@ -58,6 +66,12 @@ initialGameStage = Menu
   , "Ok, you can start now. Press k to start."
   ]
 
+setupGameState :: IO GameState
+setupGameState = do
+  mainTheme <- createMainThemeSource "assets/media/song.wav"
+  timerDing <- createTimerDingSource "assets/media/song.wav"
+  return $ GameState menu mainTheme timerDing
+
 windowConfiguration :: WindowConfig
 windowConfiguration = ( (600, 200)
                       , (800, 500)
@@ -67,18 +81,22 @@ windowConfiguration = ( (600, 200)
 background :: GameMap Int
 background = textureMap 0 50 50 250.0 250.0
 
-inputs :: [InputBinding GameStage s u v]
+inputs :: [InputBinding GameState s u v]
 inputs = [(Char 'k', Press, takeMeatloafOutOfOven)]
 
-update :: GameStage -> GameStage
-update (Baking 0)     = Burning $ secondsToTicks 2
-update (Baking time)  = Baking $ time - 1
-update (Burning 0)    = Burned
-update (Burning time) = Burning $ time - 1
-update state          = state
+update :: GameState -> GameState
+update state = let stage' = updateStage (getStage state)
+               in setStage stage' state
 
-draw :: IOGame GameStage s u v ()
-draw = getGameAttribute >>= (printString . showState)
+updateStage :: GameStage -> GameStage
+updateStage (Baking 0)     = Burning $ secondsToTicks 2
+updateStage (Baking time)  = Baking $ time - 1
+updateStage (Burning 0)    = Burned
+updateStage (Burning time) = Burning $ time - 1
+updateStage state          = state
+
+draw :: IOGame GameState s u v ()
+draw = getGameAttribute >>= (printString . showState . getStage)
        where showState :: GameStage -> String
              showState (Menu (x:_)) = x
              showState (Baking _)   = "Baking..."
@@ -95,44 +113,71 @@ printString s =
           position = (5,400)
           (r,g,b)  = (0.5, 1.0, 1.0)
 
-updateEffects :: GameStage
-              -> IOGame GameStage () u v ()
+updateEffects :: GameState
+              -> IOGame GameState () u v ()
 updateEffects state = do
   let state' = update state
   setGameAttribute state'
   updateMonkey state'
+  return ()
 
-updateMonkey :: GameStage -> IOGame GameStage () u v ()
+playMainTheme :: GameState -> IO ()
+playMainTheme state = do
+  let mainTheme = getMainTheme state
+  isPlaying <- (==Playing) <$> sourceState mainTheme
+  if (not isPlaying) then
+    play [mainTheme]
+  else
+    return ()
+  print $ show $ getStage state
+
+stopMainTheme :: GameState -> IO ()
+stopMainTheme state = do
+  let mainTheme = getMainTheme state
+  stop [mainTheme]
+
+
+updateMonkey :: GameState -> IOGame GameState () u v ()
 updateMonkey state = do
   obj <- findObject "monkey" "monkey"
   replaceObject obj (updateObjectPicture textureId maxTextureId)
-  where textureId = case state of
+  where textureId = case (getStage state) of
                       Menu _  -> 5
                       Burned  -> 2
                       Cooling -> 3
                       Ruined  -> 4
                       _       -> 1
 
-takeMeatloafOutOfOven :: InputHandler GameStage s u v
+takeMeatloafOutOfOven :: InputHandler GameState s u v
 takeMeatloafOutOfOven _ _ = do
   state <- getGameAttribute
-  case state of
-    Menu [_]   -> Baking <$> setTimer >>= setGameAttribute
-    Menu xs    -> setGameAttribute $ Menu $ tail xs
-    Burning _  -> setGameAttribute Cooling
+  case getStage state of
+    Menu [_]   -> (\time -> setStage (Baking time) state) <$> setTimer >>= setGameAttribute
+    Menu xs    -> setGameAttribute $ setStage (Menu $ tail xs) state
+    Burning _  -> setGameAttribute $ setStage Cooling state
     Cooling    -> return ()
     Ruined     -> return ()
     Burned     -> return ()
-    _          -> setGameAttribute Ruined
+    _          -> setGameAttribute $ setStage Ruined state
 
-gameCycle :: IOGame GameStage () u v ()
+gameCycle :: IOGame GameState () u v ()
 gameCycle = do
   state <- getGameAttribute
-  if shouldTimerDing state
-    then liftIOtoIOGame playTimerJingle
+  if shouldTimerDing $ getStage state
+    then liftIOtoIOGame $ playTimerDing state
     else return ()
+  if shouldMainThemePlay $ getStage state
+    then liftIOtoIOGame $ playMainTheme state
+    else liftIOtoIOGame $ stopMainTheme state
   updateEffects state
   draw
+
+shouldMainThemePlay :: GameStage -> Bool
+shouldMainThemePlay (Baking _)  = True
+shouldMainThemePlay (Burning _) = True
+shouldMainThemePlay Burned      = True
+shouldMainThemePlay Ruined      = True
+shouldMainThemePlay _           = False
 
 monkey :: ObjectManager ()
 monkey = objectGroup "monkey" [createMonkey]
@@ -146,20 +191,23 @@ shouldTimerDing :: GameStage -> Bool
 shouldTimerDing (Baking 0) = True
 shouldTimerDing _          = False
 
-playTimerJingle :: IO ()
-playTimerJingle = do
-  _ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("assets/media/song.wav")
-  return ()
+playTimerDing :: GameState -> IO ()
+playTimerDing state = do
+  let timerDing = getTimerDing state
+  play [timerDing]
 
 main :: IO ()
 main = do
-  -- Initialise ALUT and eat any ALUT-specific commandline flags.
-  --_ <- forkIO $ withProgNameAndArgs runALUT $ \_ _ -> playFile ("assets/media/song.wav")
+  withProgNameAndArgs runALUT $ \_ _ -> runGame
+
+runGame :: IO ()
+runGame = do
+  initialGameState <- setupGameState
   funInit windowConfiguration
           background
           [monkey]
           ()
-          initialGameStage
+          initialGameState
           inputs
           gameCycle
           (Timer msPerTick)
