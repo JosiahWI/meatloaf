@@ -129,7 +129,6 @@ playMainTheme state = do
     play [mainTheme]
   else
     return ()
-  print $ show $ getStage state
 
 stopMainTheme :: GameState -> IO ()
 stopMainTheme state = do
