@@ -68,8 +68,8 @@ menu = Menu
 
 setupGameState :: IO GameState
 setupGameState = do
-  mainTheme <- createMainThemeSource "assets/media/song.wav"
-  timerDing <- createTimerDingSource "assets/media/song.wav"
+  mainTheme <- createMainThemeSource "assets/media/main_theme.wav"
+  timerDing <- createTimerDingSource "assets/media/bell_ding.wav"
   return $ GameState menu mainTheme timerDing
 
 windowConfiguration :: WindowConfig
